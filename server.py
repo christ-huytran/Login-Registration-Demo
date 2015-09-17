@@ -4,7 +4,7 @@ import re
 from flask.ext.bcrypt import Bcrypt
 EMAIL_REGEX = re.compile(r'^[a-za-z0-9\.\+_-]+@[a-za-z0-9\._-]+\.[a-za-z]*$')
 app = Flask(__name__)
-bcrypt = Bcrypt(app)
+flask_bcrypt = Bcrypt(app)
 app.secret_key = '\xed\xee\x92\xcfMF\x98\xaf]\x08X\xad\x9eR\xd7\x03w\xb7\xcb\xba\xe7\xfa\x8b['
 
 mysql = MySQLConnector('demo_flask_login_registration')
@@ -12,7 +12,6 @@ mysql = MySQLConnector('demo_flask_login_registration')
 @app.route('/')
 def index():
 	return render_template('index.html')
-# print mysql.fetch("Select * From users")
 
 @app.route('/users', methods=['POST'])
 def create():
@@ -44,8 +43,8 @@ def create():
 	if error is True:
 		return redirect(url_for('index'))
 
-	password_hash = bcrypt.generate_password_hash(str(password))
-	insert_query = "INSERT INTO users (name, email, password, created_at, updated_at) VALUES ('{}', '{}', '{}', NOW(), NOW())".format(name, email, password_hash)
+	pw_hash = flask_bcrypt.generate_password_hash(password)
+	insert_query = "INSERT INTO users (name, email, password, created_at, updated_at) VALUES ('{}', '{}', '{}', NOW(), NOW())".format(name, email, pw_hash)
 	print insert_query
 	mysql.run_mysql_query(insert_query)
 	return redirect(url_for('show'))
@@ -64,19 +63,9 @@ def signin():
 	email = request.form['email']
 	password = request.form['password']
 	signin_query = "SELECT * FROM users WHERE email='{}' LIMIT 1".format(email)
-	print signin_query
 	user = mysql.fetch(signin_query)
-	print type(password)
-	print '========'
-	print user
-	print type(user[0]['password'])
-	# if user:
-	# 	if user[0]['password'] == raw_password:
-	# 		session['id'] = user[0]['id']
-	# 		session['name'] = user[0]['name']
-	# 		return redirect(url_for('show'))
 	if user:
-		if bcrypt.check_password_hash(user[0]['password'], password):
+		if flask_bcrypt.check_password_hash(user[0]['password'], password):
 			session['id'] = user[0]['id']
 			session['name'] = user[0]['name']
 			return redirect(url_for('show'))
